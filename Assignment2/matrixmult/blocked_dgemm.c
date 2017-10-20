@@ -52,16 +52,15 @@ void square_naive (const double *A, const double *B,
  */
 void square_dgemm (const double  *A, const double  *B,  double  *C, const unsigned  M)
 {
-	//int n = 10; // Need n, where n is size of matrxi A: nxn, B: nxn, C:nxn
-	int s = (int) sqrt(BLOCK_SIZE/3.0);
+	int s = BLOCK_SIZE;
 	for (int i =0; i < M/s; i++) {
 		for (int j =0; j < M/s; j++) {
-			double *C_ij = &C[i*s*M + j*s];
+			double *C_ij = C + i*s*M + j*s;	
 			
 			for (int k =0; k < M/s; k++) {
-				const double *A_ik = &A[i*s*M + k*s];
-				const double *B_kj = &B[k*s*M + j*s];
-				square_naive(A_ik, B_kj, C_ij, M, s);
+				const double *A_ik = A + i*s*M + k*s;
+				const double *B_kj = B + k*s*M + j*s;
+				square_naive(A_ik, B_kj,C_ij,M,s);
 			}
 		}
 	}
