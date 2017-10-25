@@ -92,6 +92,7 @@ int main()
       #pragma omp critical
       alpha_parallel += alpha_parallel_local;
     }
+
   }
   time_critical = walltime(time_start);
 
