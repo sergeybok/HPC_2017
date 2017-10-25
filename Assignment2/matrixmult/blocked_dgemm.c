@@ -12,7 +12,7 @@
 
 /* block parameter ... */
 #ifndef BLOCK_SIZE
-#  define BLOCK_SIZE ((unsigned) 1)
+#  define BLOCK_SIZE ((unsigned) 28)
 #endif
 
 
@@ -21,9 +21,10 @@
 
 void square_naive (const double *A, const double *B,
 	      double *C,
-	      const unsigned dim, int s)
+	      const unsigned dim, unsigned s)
 {
-    unsigned  i, j, k;
+    unsigned  i, j, k, k_ind;
+    double cij;
 
     for (i = 0; i < s; i++)
     {
@@ -32,8 +33,8 @@ void square_naive (const double *A, const double *B,
 	    {
             const double *B_xj = B + j;
 
-            double cij = C[i*dim + j];
-	        unsigned k_ind = 0;
+            cij = C[i*dim + j];
+	        k_ind = 0;
 
             for (k = 0; k < s; k++)
 	        {
@@ -50,20 +51,83 @@ void square_naive (const double *A, const double *B,
 /**
  *  square_dgemm -- multiply two block matrices A and B adding result to C, result is C = C + A*B
  */
+
 void square_dgemm (const double  *A, const double  *B,  double  *C, const unsigned  M)
 {
-	int s = BLOCK_SIZE;
-	for (int i =0; i < M/s; i++) {
-		for (int j =0; j < M/s; j++) {
-			double *C_ij = C + i*s*M + j*s;	
+	unsigned i,j,k,s;
+	
+	if (BLOCK_SIZE < M) s = (BLOCK_SIZE);
+	else s = M;
+	unsigned rem = (M%s);
+
+	for (i =0; i < M/s; i++) {
+		for (j =0; j < M/s; j++) {
+			double *C_ij = C + i*s*M + j*s;
 			
-			for (int k =0; k < M/s; k++) {
+			for (k =0; k < M/s; k++) {
 				const double *A_ik = A + i*s*M + k*s;
 				const double *B_kj = B + k*s*M + j*s;
 				square_naive(A_ik, B_kj,C_ij,M,s);
 			}
+
+			if (rem ==0) continue;
+			//for (int ii = i*s; ii < (i+1)*s; ii++ ) {
+			for (int ii = 0; ii < s; ii++){
+				const double *A_ix = A + i*s*M + ii*M;
+				//for (int jj = j*s; jj < (j+1)*s; jj++) {
+				for (int jj = 0; jj < s; jj++){
+					const double *B_xj = B + j*s + jj;
+					double cij = C_ij[ii*M + jj];
+					unsigned k_ind = (M-rem)*M;
+					for (int kk = M-rem; kk<M; kk++ ){
+						cij += A_ix[kk]*B_xj[k_ind];
+						k_ind += M;
+					}
+					C_ij[ii*M + jj] = cij;
+				}
+			}
 		}
 	}
+
+	//printf("M = %i M/s = %i s = %i \n", M, M/s, s);
+	// Remainder
+	s = (M%s);
+	if (s==0) {
+		return;
+	}
+
+	//printf("M = %i M/s = %i s = %i \n", M, M/s, s);
+
+
+
+	for (i=M-s; i < M;i++){
+		const double *A_ix = A + i*M;
+		for(j=0; j<M; j++){
+			const double *B_xj = B+j;
+			double cij = C[i*M +j];
+			unsigned k_ind =0;
+			for(k=0; k<M; k++) {
+				cij += A_ix[k] * B_xj[k_ind];
+				k_ind += M;
+			}
+
+			C[i*M + j] = cij;
+		}
+	}
+	for (i=0; i < M-s; i++) {
+		const double *A_ix = A + i*M;
+		for(j=M-s; j< M; j++) {
+			const double *B_xj = B + j;
+			double cij = C[i*M + j];
+			unsigned k_ind = 0;
+			for (k=0; k<M; k++) {
+				cij += A_ix[k] * B_xj[k_ind];
+				k_ind += M;
+			}
+			C[i*M + j] = cij;
+		}
+	}
+
 }
 
 

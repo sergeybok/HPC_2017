@@ -157,6 +157,7 @@ validate_dgemm (const double *A, const double *B,
 		       i, j, dot, C[dim*i + j]);
                 printf("Error is: %g, vs. Error Tolerance: %g\n",
                        error, 3 * error_bound);
+                printf("row = %i col = %i Msize = %i \n",i,j,dim);
 
 		/* Program Exit */
                 exit(-1);
