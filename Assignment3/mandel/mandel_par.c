@@ -36,11 +36,10 @@ int main (int argc, char** argv)
     n = 0;
     //printf(MAX_ITERS);
 	// do the calculation
-	#pragma omp for private(cy)
+	#pragma omp for private(cy,cx,n) shared(pPng)
 	for (j = 0; j < IMAGE_HEIGHT; j++)
 	{
 		cx = MIN_X;
-		#pragma omp for private(x,y,cx)
 		for (i = 0; i < IMAGE_WIDTH; i++)
 		{			
 			x = cx;
