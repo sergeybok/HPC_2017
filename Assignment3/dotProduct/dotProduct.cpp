@@ -63,7 +63,39 @@ int main()
   double time_red=0;
   double time_critical=0;
   // TODO: Write parallel version (2 ways!)
+  time_start = walltime(0);
+
+
+  int i, iterations;
+  for(iterations=0;iterations<NUM_ITERATIONS;iterations++) {
+    alpha_parallel=0.0;
+    #pragma omp parallel for private(i) reduction(+:alpha_parallel)
+    for(i=0; i< NMAX; i++)
+      {
+        alpha_parallel += a[i] * b[i];
+      }
+  }
+  time_red = walltime(time_start);
   
+  time_start = walltime(0);
+  long double alpha_parallel_local = 0;
+  for(iterations=0;iterations<NUM_ITERATIONS;iterations++) {
+    alpha_parallel=0.0;
+    alpha_parallel_local = 0;
+    #pragma omp parallel firstprivate(alpha_parallel_local) shared(alpha_parallel)
+    {
+    #pragma omp for 
+    for(i=0; i< NMAX; i ++)
+      {
+        alpha_parallel_local += a[i] * b[i];
+      }
+      #pragma omp critical
+      alpha_parallel += alpha_parallel_local;
+    }
+  }
+  time_critical = walltime(time_start);
+
+
 
   if( (fabs(alpha_parallel - alpha)/fabs(alpha_parallel)) > EPSILON) {
     cout << "parallel reduction: " << alpha_parallel << " serial :" << alpha << "\n";
