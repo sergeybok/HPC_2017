@@ -22,7 +22,7 @@ int main (int argc, char** argv)
 {
 	png_data* pPng = png_create (IMAGE_WIDTH, IMAGE_HEIGHT);
 	
-	double x, y, x2, y2, cx, cy;
+	double z_re, z_im, z_re2, z_im2, cx, cy;
 	cy = MIN_Y;
 	
 	double fDeltaX = (MAX_X - MIN_X) / (double) IMAGE_WIDTH;
@@ -32,46 +32,46 @@ int main (int argc, char** argv)
 	unsigned long nTimeStart = get_time ();
 	
 	long i, j, n;
+	long nTotalIterationsCount_local = 0;
         
     n = 0;
     //printf(MAX_ITERS);
 	// do the calculation
-	#pragma omp for private(cy,cx,n) shared(pPng)
+	
+	#pragma omp parallel firstprivate(cx,cy,i,j,n,z_re,z_im,z_re2,z_im2,nTotalIterationsCount_local) shared(pPng,nTotalIterationsCount,fDeltaX,fDeltaY) 
+	{
+	#pragma omp for
 	for (j = 0; j < IMAGE_HEIGHT; j++)
 	{
-		cx = MIN_X;
+		cy = MIN_Y + fDeltaY*j;
 		for (i = 0; i < IMAGE_WIDTH; i++)
-		{			
-			x = cx;
-			y = cy;
-			
-			x2 = x * x;
-			y2 = y * y;
-			
-			double c_re = cx;
-			double c_im = cy;
-			double z_re = c_re;
-			double z_im = c_im;
-			double z_abs2;
-			for (n=0; n < MAX_ITERS; n++) {
-				z_re = z_re*z_re - z_im*z_im + c_re;
-				z_im = z_re*z_im + z_re*z_im + c_im;
-				z_abs2 = z_re*z_re + z_im*z_im;
-				if (z_abs2 > 4) { break; }
-			}
+		{
+			cx = MIN_X + fDeltaX*i;
 
+			z_re = cx;
+			z_im = cy;
+			z_re2 = z_re * z_re;
+			z_im2 = z_im * z_im;
+			for (n=0; n < MAX_ITERS && z_re2 + z_im2 < 4; n++) {
+				z_im = z_re*z_im*2 + cy;
+				z_re = z_re2 - z_im2 + cx;
+				z_re2 = z_re * z_re;
+				z_im2 = z_im * z_im;
+			}
 
 			// plot the number of iterations at point (i, j)
 			int c = ((long) n * 255) / MAX_ITERS;
+			
 			#pragma omp critical
 			png_plot (pPng, i, j, c, c, c);
 
-			nTotalIterationsCount += n;
+			nTotalIterationsCount_local += n;
 			
-			cx += fDeltaX;
 		}
-		
-		cy += fDeltaY;
+
+	}
+	#pragma omp critical
+	nTotalIterationsCount += nTotalIterationsCount_local;
 	}
 	
 	unsigned long nTimeEnd = get_time ();

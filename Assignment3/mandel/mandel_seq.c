@@ -8,6 +8,8 @@
 #include "pngwriter.h"
 #include "consts.h"
 
+#include <math.h>
+
 
 unsigned long get_time ()
 {
@@ -20,7 +22,7 @@ int main (int argc, char** argv)
 {
 	png_data* pPng = png_create (IMAGE_WIDTH, IMAGE_HEIGHT);
 	
-	double x, y, x2, y2, cx, cy;
+	double z_re, z_im, z_re2, z_im2, cx, cy;
 	cy = MIN_Y;
 	
 	double fDeltaX = (MAX_X - MIN_X) / (double) IMAGE_WIDTH;
@@ -30,22 +32,27 @@ int main (int argc, char** argv)
 	unsigned long nTimeStart = get_time ();
 	
 	long i, j, n;
-        
-        n = 0;
+	    
+    n = 0;
+    //printf(MAX_ITERS);
 	// do the calculation
+	
 	for (j = 0; j < IMAGE_HEIGHT; j++)
 	{
 		cx = MIN_X;
-		
 		for (i = 0; i < IMAGE_WIDTH; i++)
 		{			
-			x = cx;
-			y = cy;
-			
-			x2 = x * x;
-			y2 = y * y;
-			
-			// compute the orbit z, f(z), f²(z), f³(z), ...
+			z_re = cx;
+			z_im = cy;
+			z_re2 = z_re * z_re;
+			z_im2 = z_im * z_im;
+			for (n=0; n < MAX_ITERS && z_re2 + z_im2 < 4; n++) {
+				z_im = z_re*z_im*2 + cy;
+				z_re = z_re2 - z_im2 + cx;
+				z_re2 = z_re * z_re;
+				z_im2 = z_im * z_im;
+			}
+						// compute the orbit z, f(z), f²(z), f³(z), ...
 			// count the iterations until the orbit leaves the circle |z|=2.
 			// stop if the number of iterations exceeds the bound MAX_ITERS.
 
@@ -55,16 +62,20 @@ int main (int argc, char** argv)
 
                         // <<<<<<<< CODE IS NISSING
                         // n indicates if the point belongs to the mandelbrot set
-			
+
 			// plot the number of iterations at point (i, j)
 			int c = ((long) n * 255) / MAX_ITERS;
+			
 			png_plot (pPng, i, j, c, c, c);
+
+			nTotalIterationsCount += n;
 			
 			cx += fDeltaX;
 		}
 		
 		cy += fDeltaY;
 	}
+	
 	
 	unsigned long nTimeEnd = get_time ();
 	
