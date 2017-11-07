@@ -53,8 +53,9 @@ void cg_init(int nx, int ny)
 double ss_dot(Field const& x, Field const& y, const int N)
 {
     double result = 0;
-
-    for (int i = 0; i < N; i++)
+    unsigned i;
+    //#pragma omp parallel for private(i) reduction(+:result)
+    for (i = 0; i < N; i++)
         result += x[i] * y[i];
 
     return result;
@@ -67,6 +68,11 @@ double ss_norm2(Field const& x, const int N)
     double result = 0;
 
     //TODO
+    unsigned i;
+    //#pragma omp parallel for private(i) reduction(+:result)
+    for (i=0; i<N; i++) {
+        result += x[i]*x[i];
+    }
 
     return sqrt(result);
 }
@@ -77,6 +83,11 @@ double ss_norm2(Field const& x, const int N)
 void ss_fill(Field& x, const double value, const int N)
 {
     //TODO
+    unsigned i;
+    //#pragma omp parallel for
+    for (i=0; i < N; i++) {
+        x[i] = value;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -89,6 +100,11 @@ void ss_fill(Field& x, const double value, const int N)
 void ss_axpy(Field& y, const double alpha, Field const& x, const int N)
 {
     //TODO
+    unsigned i;
+    //#pragma omp parallel for private(i)
+    for(i =0; i < N; i++) {
+        y[i] = y[i] + alpha*x[i];
+    }
 }
 
 // computes y = x + alpha*(l-r)
@@ -98,15 +114,25 @@ void ss_add_scaled_diff(Field& y, Field const& x, const double alpha,
     Field const& l, Field const& r, const int N)
 {
     //TODO
+    unsigned i;
+    //#pragma omp parallel for private(i)
+    for (i=0; i<N; i++) {
+        y[i] = x[i] + alpha*(l[i] - r[i]);
+    }
 }
 
 // computes y = alpha*(l-r)
 // y, l and r are vectors of length N
 // alpha is a scalar
-void ss_scaled_diff(Field& y, const double alpha,
+void ss_scaled_diff(Field& y, const double alpha, 
     Field const& l, Field const& r, const int N)
 {
     //TODO
+    unsigned i;
+    //#pragma omp parallel for private(i)
+    for (i = 0; i<N; i++) {
+        y[i] = alpha*(l[i] - r[i]);
+    }
 }
 
 // computes y := alpha*x
@@ -115,6 +141,11 @@ void ss_scaled_diff(Field& y, const double alpha,
 void ss_scale(Field& y, const double alpha, Field& x, const int N)
 {
     //TODO
+    unsigned i;
+    //#pragma omp parallel for private(i)
+    for(i = 0; i<N; i++){
+        y[i] = alpha*(x[i]);
+    }
 }
 
 // computes linear combination of two vectors y := alpha*x + beta*z
@@ -124,6 +155,11 @@ void ss_lcomb(Field& y, const double alpha, Field& x, const double beta,
     Field const& z, const int N)
 {
     //TODO
+    unsigned i;
+    //#pragma omp parallel for private(i)
+    for (i=0; i<N; i++) {
+        y[i] = alpha*(x[i]) + beta*(z[i]);
+    }
 }
 
 // copy one vector into another y := x
@@ -131,6 +167,11 @@ void ss_lcomb(Field& y, const double alpha, Field& x, const double beta,
 void ss_copy(Field& y, Field const& x, const int N)
 {
     //TODO
+    unsigned i;
+    //#pragma omp parallel for private(i)
+    for (i=0; i<N; i++) {
+        y[i] = x[i];
+    }
 }
 
 // conjugate gradient solver

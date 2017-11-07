@@ -31,6 +31,7 @@ void diffusion(const data::Field &U, data::Field &S)
     int jend  = ny - 1;
 
     // the interior grid points
+    //#pragma omp parallel for 
     for (int j=1; j < jend; j++) {
         for (int i=1; i < iend; i++) {
             S(i,j) = -(4. + alpha) * U(i,j)               // central point
@@ -42,24 +43,36 @@ void diffusion(const data::Field &U, data::Field &S)
     }
 
     // the east boundary
+    //#pragma omp sections 
+    {
+    //#pragma omp section 
     {
         int i = nx - 1;
         for (int j = 1; j < jend; j++)
         {
+            ////#pragma omp critical
             S(i,j) = -(4. + alpha) * U(i,j)
-                        + U(i-1,j) + U(i,j-1) + U(i,j+1)
+                        + U(i-1,j) + U(i,j-1) + U(i,j+1) // west, down, up
                         + alpha*x_old(i,j) + bndE[j]
                         + dxs * U(i,j) * (1.0 - U(i,j));
         }
     }
 
     // the west boundary
+    //#pragma omp section 
     {
         int i = 0;
-        //TODO
+        for (int j = 1; j < jend; j++)
+        {
+            S(i,j) = -(4. + alpha) * U(i,j)
+                        + U(i+1,j) + U(i,j-1) + U(i,j+1) // east, down, up
+                        + alpha*x_old(i,j) + bndW[j]
+                        + dxs * U(i,j) * (1.0 - U(i,j));
+        }
     }
 
     // the north boundary (plus NE and NW corners)
+    //#pragma omp section 
     {
         int j = ny - 1;
 
@@ -72,7 +85,17 @@ void diffusion(const data::Field &U, data::Field &S)
         }
 
         // north boundary
-        //TODO
+        {
+            int i = 0;
+            for (int i = 1; i < iend; i++)
+            {
+                S(i,j) = -(4. + alpha) * U(i,j)
+                        + U(i-1,j) + U(i,j-1) + U(i+1,j)  // east, down, west
+                        + alpha*x_old(i,j) + bndE[j]
+                        + dxs * U(i,j) * (1.0 - U(i,j));
+            }
+
+        }
 
         {
             int i = nx-1; // NE corner
@@ -84,6 +107,7 @@ void diffusion(const data::Field &U, data::Field &S)
     }
 
     // the south boundary
+    //#pragma omp section 
     {
         int j = 0;
 
@@ -96,7 +120,16 @@ void diffusion(const data::Field &U, data::Field &S)
         }
 
         // south boundary
-        //TODO
+        {
+            int i = 0;
+            for (int i = 1; i < iend; i++)
+                {
+                    S(i,j) = -(4. + alpha) * U(i,j)
+                        + U(i-1,j) + U(i,j+1) + U(i+1,j)  // east, up, west
+                        + alpha*x_old(i,j) + bndE[j]
+                        + dxs * U(i,j) * (1.0 - U(i,j));
+                }
+        }
 
         {
             int i = nx - 1; // SE corner
@@ -105,6 +138,8 @@ void diffusion(const data::Field &U, data::Field &S)
                         + alpha * x_old(i,j) + bndE[j] + bndS[i]
                         + dxs * U(i,j) * (1.0 - U(i,j));
         }
+    }
+
     }
 
     // Accumulate the flop counts
