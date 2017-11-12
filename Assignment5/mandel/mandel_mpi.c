@@ -28,6 +28,8 @@ int main (int argc, char** argv)
 	MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 
+	MPI_Datatype data_box;
+
 	// Create partitioning of the image
 	// determine 2D dimensions of the grid of processes
 	Partition p = createPartition(mpi_rank, mpi_size);
@@ -62,6 +64,9 @@ int main (int argc, char** argv)
     	int extrax = IMAGE_WIDTH % p.nx;
     	int extray = IMAGE_HEIGHT % p.ny;
     	c = malloc((d.nx + extrax) * (d.ny + extray) * sizeof(int));
+    	//printf("dnx, dny : %i , %i \n",d.nx,d.ny);
+    	//printf("extrax, extray : %i , %i \n",extrax,extray);
+    	//printf("total csize: %i \n", (d.nx + extrax) * (d.ny + extray));
     } else
     {
     	c = malloc(d.nx*d.ny*sizeof(int));
@@ -120,6 +125,7 @@ int main (int argc, char** argv)
 	if (mpi_rank != 0)
 	{
 		// TODO: send local partition c to the master process
+    	MPI_Send(c,d.nx*d.ny,MPI_INT,0,1,MPI_COMM_WORLD);
 	}
 	/****************************************************************************/
 	// Write the image
@@ -134,16 +140,21 @@ int main (int argc, char** argv)
 				png_plot (pPng, i+d.startx, j+d.starty, c_ij ,c_ij, c_ij);
 			}
 		}
-
+		
 		// receive and write the data from other processes
 		for (int proc = 1; proc < mpi_size; proc++)
 		{
 			Partition p1 = updatePartition(p, proc);
 			Domain d1 = createDomain(p1);
-
+			
+			MPI_Request request;
+			MPI_Status status;
 			// TODO: receive partition of the process proc into array c (overwrite its data)
-
+			/*
+			*/
+			MPI_Irecv(c, d1.nx*d1.ny, MPI_INT, proc,1,MPI_COMM_WORLD,&request);
 			// write the partition of the process proc
+			MPI_Wait(&request,&status);
 			for (j = 0; j < d1.ny; j++) // HEIGHT
 			{
 				for (i = 0; i < d1.nx; i++) // WIDTH
@@ -153,12 +164,11 @@ int main (int argc, char** argv)
 				}
 			}
 		}
-
 		png_write (pPng, "mandel.png");
 	}
 
 	//TODO: uncomment after you implement createPartition(int mpi_rank, int mpi_size)
-	//MPI_Comm_free(&p.comm);
+	MPI_Comm_free(&p.comm);
 	free(c);
 	MPI_Finalize();
 	return 0;
