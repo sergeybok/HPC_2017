@@ -45,7 +45,35 @@ void diffusion(const data::Field &U, data::Field &S)
     int jend  = ny - 1;
 
     if(domain.neighbour_north>=0) {
-        // ...
+        // ... 
+        MPI_Request request;
+        MPI_Status status;
+
+        for(int j = domain.starty; j < domain.endy; j++) {
+            buffN[j] = U(domain.startx, j);
+        }
+        for(int i = domain.startx; i < domain.endx; i++) {
+            buffE[i] = U(i,domain.starty);
+        }
+        for(int j = domain.starty; j < domain.endy; j++) {
+            buffS[j] = U(domain.endx, j);
+        }
+        for(int i = domain.startx; i < domain.endx; i++) {
+            buffW[i] = U(i,domain.endy);
+        }
+        MPI_Send(buffN,domain.starty - domain.endy,MPI_DOUBLE,neighbour_north,1,comm_cart);
+        MPI_Irecv(bndN,domain.starty - domain.endy,MPI_DOUBLE,neighbour_north,comm_cart,&request);
+        
+        MPI_Send(buffS,domain.starty - domain.endy,MPI_DOUBLE,neighbour_south,1,comm_cart);
+        MPI_Irecv(bndS,domain.starty - domain.endy,MPI_DOUBLE,neighbour_south,comm_cart,&request);
+        
+        MPI_Send(buffE,domain.startx - domain.endx,MPI_DOUBLE,neighbour_east,1,comm_cart);
+        MPI_Irecv(bndE,domain.startx - domain.endx,MPI_DOUBLE,neighbour_east,comm_cart,&request);
+        
+        MPI_Send(buffW,domain.startx - domain.endx,MPI_DOUBLE,neighbour_north,1,comm_cart);
+        MPI_Irecv(bndW,domain.startx - domain.endx,MPI_DOUBLE,neighbour_north,comm_cart,&request);
+        
+        MPI_Wait(&request,&status);
     }
 
     // the interior grid points
@@ -62,6 +90,7 @@ void diffusion(const data::Field &U, data::Field &S)
 
     // the east boundary
     {
+
         int i = nx - 1;
         for (int j = 1; j < jend; j++)
         {
@@ -74,6 +103,7 @@ void diffusion(const data::Field &U, data::Field &S)
 
     // the west boundary
     {
+        #pragma omp parallel for
         int i = 0;
         for (int j = 1; j < jend; j++)
         {
@@ -86,6 +116,7 @@ void diffusion(const data::Field &U, data::Field &S)
 
     // the north boundary (plus NE and NW corners)
     {
+        #pragma omp parallel for
         int j = ny - 1;
 
         {

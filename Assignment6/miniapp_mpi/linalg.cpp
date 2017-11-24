@@ -57,28 +57,29 @@ void cg_init(int nx, int ny)
 // x and y are vectors on length N
 double ss_dot(Field const& x, Field const& y)
 {
-    double result = 0;
+    double result, global_result = 0;
     int N = y.length();
-
+    
+    
     #pragma omp parallel for reduction(+:result)
     for (int i = 0; i < N; i++)
         result += x[i] * y[i];
-
-    return result;
+    MPI_Allreduce(&result,&global_result,N,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    
+    return global_result;
 }
 
 // computes the 2-norm of x
 // x is a vector on length N
 double ss_norm2(Field const& x)
 {
-    double result = 0;
+    double result, global_result = 0;
     int N = x.length();
-
     #pragma omp parallel for reduction(+:result)
     for (int i = 0; i < N; i++)
         result += x[i] * x[i];
-
-    return sqrt(result);
+    MPI_Allreduce(&result,&global_result,N,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+    return sqrt(global_result);
 }
 
 // sets entries in a vector to value

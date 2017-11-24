@@ -36,21 +36,26 @@ void SubDomain::init(int mpi_rank, int mpi_size, Discretization& discretization)
 {
     // determine the number of subdomains in the x and y dimensions
     int dims[2] = { 0, 0 };
-
+    MPI_Dims_create(mpi_size,2,dims);
     ndomy = dims[0];
     ndomx = dims[1];
 
     // create a 2D non-periodic cartesian topology
     int periods[2] = { 0, 0 };
+    MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, 0, &comm_cart);
 
     // retrieve coordinates of the rank in the topology
     int coords[2];
-
+    MPI_Cart_coords(comm_cart,mpi_rank,2,coords);
     domy = coords[0]+1;
     domx = coords[1]+1;
 
     // set neighbours for all directions
     // i.e. set neighbour_south neighbour_north neighbour_east neighbour_west
+    MPI_Cart_shift(comm_cart,1,1,&mpi_rank,&neighbour_east);
+    MPI_Cart_shift(comm_cart,1,-1,&mpi_rank,&neighbour_west);
+    MPI_Cart_shift(comm_cart,0,1,&mpi_rank,&neighbour_north);
+    MPI_Cart_shift(comm_cart,0,-1,&mpi_rank,&neighbour_south);
 
     // get bounding box
     nx = discretization.nx / ndomx;

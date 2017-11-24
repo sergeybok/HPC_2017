@@ -138,8 +138,11 @@ int main(int argc, char* argv[])
     readcmdline(options, argc, argv);
 
     // initialize MPI
+    MPI_Init(&argc, &argv);
     int mpi_rank, mpi_size;
     int thread_level;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 
     // initialize subdomain
     domain.init(mpi_rank, mpi_size, options);
@@ -307,6 +310,8 @@ int main(int argc, char* argv[])
 
     if(domain.rank==0)
         std::cout << "Goodbye!" << std::endl;
+
+    MPI_Finalize();
 
     return 0;
 }
